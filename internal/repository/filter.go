@@ -13,7 +13,7 @@ type Filter struct {
 }
 
 func (f Filter) GetOffSet() int {
-	return f.Limit*(f.Page-1) + 1
+	return f.Limit * (f.Page - 1)
 }
 
 func (f Filter) GetSortCriteria() string {

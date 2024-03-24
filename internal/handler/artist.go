@@ -12,45 +12,43 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-type TrackHandler struct {
-	repository repository.TrackRepository
+type ArtistHandler struct {
+	repository repository.ArtistRepository
 }
 
-func NewTrackHandler(repo repository.TrackRepository) TrackHandler {
-	return TrackHandler{
+func NewArtistHandler(repo repository.ArtistRepository) ArtistHandler {
+	return ArtistHandler{
 		repository: repo,
 	}
 }
 
-func (th *TrackHandler) CreateTrack(c *gin.Context) {
-	type RequestTrack struct {
-		Name      string      `json:"name"`
-		Length    int         `json:"length"`
-		Artist_id []uuid.UUID `json:"artist_id"`
+func (ah *ArtistHandler) CreateArtist(c *gin.Context) {
+	type RequestArtist struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
 	}
 
-	request_track := RequestTrack{}
-	if err := c.BindJSON(&request_track); err != nil {
+	request_artist := RequestArtist{}
+	err := c.BindJSON(&request_artist)
+	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusBadRequest)
-		return
 	}
 
-	track := &model.Track{
-		Name:     request_track.Name,
-		Length:   request_track.Length,
-		ArtistID: request_track.Artist_id,
+	artist := &model.Artist{
+		Name:        request_artist.Name,
+		Description: request_artist.Description,
 	}
 
-	track, err := th.repository.CreateTrack(context.Background(), track)
+	artist, err = ah.repository.CreateArtist(context.Background(), artist)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, track)
+	c.JSON(http.StatusOK, artist)
 }
 
-func (th *TrackHandler) GetTrackByID(c *gin.Context) {
+func (ah *ArtistHandler) GetArtistByID(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
 	id, err := uuid.FromString(id_string_form)
@@ -59,24 +57,16 @@ func (th *TrackHandler) GetTrackByID(c *gin.Context) {
 		return
 	}
 
-	track, err := th.repository.GetTrackByID(context.Background(), id)
+	artist, err := ah.repository.GetArtistByID(context.Background(), id)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
 	}
 
-	artist_id, err := th.repository.GetArtistOfTrack(context.Background(), id)
-	if err != nil {
-		helper.ErrorResponse(c, err, http.StatusInternalServerError)
-		return
-	}
-
-	track.ArtistID = artist_id
-	c.JSON(http.StatusOK, track)
+	c.JSON(http.StatusOK, artist)
 }
 
-func (th *TrackHandler) GetTrackWithFilter(c *gin.Context) {
-
+func (ah *ArtistHandler) GetArtistWithFilter(c *gin.Context) {
 	name := c.Query("name")
 
 	page, err := helper.GetPage(c)
@@ -104,7 +94,7 @@ func (th *TrackHandler) GetTrackWithFilter(c *gin.Context) {
 		SortBy: sort_criterias,
 	}
 
-	tracks, err := th.repository.GetTracksWithFilter(context.Background(), filter)
+	tracks, err := ah.repository.GetArtistsWithFilter(context.Background(), filter)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
@@ -113,7 +103,7 @@ func (th *TrackHandler) GetTrackWithFilter(c *gin.Context) {
 	c.JSON(http.StatusOK, tracks)
 }
 
-func (th *TrackHandler) DeleteTrack(c *gin.Context) {
+func (ah *ArtistHandler) DeleteArtist(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
 	id, err := uuid.FromString(id_string_form)
@@ -122,7 +112,7 @@ func (th *TrackHandler) DeleteTrack(c *gin.Context) {
 		return
 	}
 
-	err = th.repository.DeleteTrack(context.Background(), id)
+	err = ah.repository.DeleteArtist(context.Background(), id)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
@@ -131,17 +121,17 @@ func (th *TrackHandler) DeleteTrack(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "delete successfully"})
 }
 
-func (th *TrackHandler) UpdateTrack(c *gin.Context) {
-	track := model.Track{}
-	if err := c.BindJSON(&track); err != nil {
+func (ah *ArtistHandler) UpdateArtist(c *gin.Context) {
+	artist := model.Artist{}
+	if err := c.BindJSON(&artist); err != nil {
 		helper.ErrorResponse(c, err, http.StatusBadRequest)
 		return
 	}
 
-	if err := th.repository.UpdateTrack(context.Background(), &track); err != nil {
+	if err := ah.repository.UpdateArtist(context.Background(), &artist); err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusAccepted, track)
+	c.JSON(http.StatusAccepted, artist)
 }

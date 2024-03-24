@@ -4,7 +4,6 @@ import (
 	"context"
 	"flotify/internal/model"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/gofrs/uuid/v5"
@@ -21,6 +20,7 @@ type TrackRepository interface {
 	ParitalUpdateTrack(ctx context.Context, track *model.Track) error
 	DeleteTrack(ctx context.Context, id uuid.UUID) error
 	DeleteTracks(ctx context.Context, id_list []uuid.UUID) error
+	GetArtistOfTrack(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error)
 }
 
 type PostgresTrackRepository struct {
@@ -59,19 +59,38 @@ func (tr *PostgresTrackRepository) GetTracksWithFilter(ctx context.Context, filt
 		select id, name, length from tracks
 		where (to_tsvector('simple', name) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		order by %s id ASC
+		limit $2 offset $3
 	`, sort_criteria)
 
-	log.Println(fetchString)
-	rows, err := tr.dbpool.Query(ctx, fetchString, filter.Props["name"])
+	rows, err := tr.dbpool.Query(ctx, fetchString, filter.Props["name"], filter.Limit, filter.GetOffSet())
 	if err != nil {
 		return nil, err
 	}
 
-	tracks, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.Track])
+	type OnlyTrackInfo struct {
+		ID     uuid.UUID
+		Name   string
+		Length int
+	}
+	onlytracks, err := pgx.CollectRows(rows, pgx.RowToStructByName[OnlyTrackInfo])
 	if err != nil {
 		return nil, err
 	}
 
+	tracks := []model.Track{}
+	for _, ot := range onlytracks {
+		artists_id, err := tr.GetArtistOfTrack(ctx, ot.ID)
+		if err != nil {
+			return nil, err
+		}
+		track := model.Track{
+			ID:       ot.ID,
+			Name:     ot.Name,
+			Length:   ot.Length,
+			ArtistID: artists_id,
+		}
+		tracks = append(tracks, track)
+	}
 	return tracks, nil
 }
 
@@ -102,11 +121,18 @@ func (tr *PostgresTrackRepository) CreateTrack(ctx context.Context, track *model
 		return nil, err
 	}
 
+	insert_xref_string := "INSERT INTO artists_tracks(artist_id, track_id) VALUES ($1, $2)"
+	for _, artist_id := range track.ArtistID {
+		_, err = tx.Exec(ctx, insert_xref_string, artist_id, track.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	err = tx.Commit(ctx)
 	if err != nil {
 		return nil, err
 	}
-
 	return track, err
 }
 
@@ -204,4 +230,27 @@ func (tr *PostgresTrackRepository) DeleteTracks(ctx context.Context, id_list []u
 	}
 
 	return nil
+}
+
+func (tr *PostgresTrackRepository) GetArtistOfTrack(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error) {
+	fetchString := "select artist_id from artists_tracks where track_id = $1"
+	rows, err := tr.dbpool.Query(ctx, fetchString, id)
+	if err != nil {
+		return nil, err
+	}
+
+	id_list := []uuid.UUID{}
+	for rows.Next() {
+		uuid_byte := []byte{}
+		err = rows.Scan(&uuid_byte)
+		if err != nil {
+			return nil, err
+		}
+		id, err := uuid.FromBytes(uuid_byte)
+		if err != nil {
+			return nil, err
+		}
+		id_list = append(id_list, id)
+	}
+	return id_list, nil
 }
