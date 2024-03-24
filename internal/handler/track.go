@@ -22,6 +22,16 @@ func NewTrackHandler(repo repository.TrackRepository) TrackHandler {
 	}
 }
 
+// CreateTrack godoc
+//
+//	@Summary		Create a track
+//	@Description	Create a new track
+//	@Tags			track
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	model.Track
+//	@Failure		400	"Bad request"
+//	@Router			/track [post]
 func (th *TrackHandler) CreateTrack(c *gin.Context) {
 	type RequestTrack struct {
 		Name      string      `json:"name"`
@@ -50,6 +60,17 @@ func (th *TrackHandler) CreateTrack(c *gin.Context) {
 	c.JSON(http.StatusOK, track)
 }
 
+// GetTrack godoc
+//
+//	@Summary		Get track's information
+//	@Description	Get track's information by its ID
+//	@Tags			track
+//	@Param			id path string true "Track ID" example("3983a1d6-759b-4e5e-b307-7b7e06a05a85")
+//	@Produce		json
+//	@Success		200	{object}	model.Track
+//	@Failure		400	"Bad request"
+//	@Failure		500	"Internal server error"
+//	@Router			/track/{id} [get]
 func (th *TrackHandler) GetTrackByID(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 

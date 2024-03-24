@@ -22,6 +22,16 @@ func NewArtistHandler(repo repository.ArtistRepository) ArtistHandler {
 	}
 }
 
+// CreateArtist godoc
+//	@Summary		Create an artist
+//	@Description	Create a new artist
+//	@Tags			artist
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	model.Artist
+//	@Failure		400
+//	@Failure		500
+//	@Router			/artist [post]
 func (ah *ArtistHandler) CreateArtist(c *gin.Context) {
 	type RequestArtist struct {
 		Name        string `json:"name"`

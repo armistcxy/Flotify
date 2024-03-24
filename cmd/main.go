@@ -6,8 +6,15 @@ import (
 	"flotify/internal/handler"
 	"fmt"
 	"net/http"
+
+	_ "flotify/docs"
 )
 
+//	@title			Swagger Flotify API
+//	@version		1.0
+//	@description	Spotify API clone
+
+//	@host	localhost:4040
 func main() {
 	dbpool := database.GetDatabasePool()
 	defer dbpool.Close()

@@ -5,10 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 	router := gin.New()
+
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	track_repo := repository.NewPostgresTrackRepository(dbpool)
 	track_handler := NewTrackHandler(track_repo)
@@ -33,5 +37,11 @@ func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 		artist_subrouter.GET("/", artist_handler.GetArtistWithFilter)
 	}
 
+	user_repo := repository.NewPostgresUserRepository(dbpool)
+	user_handler := NewUserHandler(user_repo)
+	user_subrouter := router.Group("/user")
+	{
+		user_subrouter.POST("/", user_handler.CreateUser)
+	}
 	return router
 }
