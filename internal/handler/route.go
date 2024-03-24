@@ -26,7 +26,8 @@ func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 	artist_subrouter := router.Group("/artist")
 	{
 		artist_subrouter.POST("/", artist_handler.CreateArtist)
-		artist_subrouter.GET("/:id", artist_handler.GetArtistByID)
+		artist_subrouter.GET("/info/:id", artist_handler.GetInfoArtistByID)
+		artist_subrouter.GET("/:id", artist_handler.GetArtistTracksByID)
 		artist_subrouter.PUT("/", artist_handler.UpdateArtist)
 		artist_subrouter.DELETE("/:id", artist_handler.DeleteArtist)
 		artist_subrouter.GET("/", artist_handler.GetArtistWithFilter)

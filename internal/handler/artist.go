@@ -48,7 +48,7 @@ func (ah *ArtistHandler) CreateArtist(c *gin.Context) {
 	c.JSON(http.StatusOK, artist)
 }
 
-func (ah *ArtistHandler) GetArtistByID(c *gin.Context) {
+func (ah *ArtistHandler) GetInfoArtistByID(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
 	id, err := uuid.FromString(id_string_form)
@@ -64,6 +64,34 @@ func (ah *ArtistHandler) GetArtistByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, artist)
+}
+
+func (ah *ArtistHandler) GetArtistTracksByID(c *gin.Context) {
+	id_string_form := c.Params.ByName("id")
+
+	id, err := uuid.FromString(id_string_form)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	artist, err := ah.repository.GetArtistByID(context.Background(), id)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	tracks, err := ah.repository.GetTrackOfArtist(context.Background(), id)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	response := gin.H{
+		"artist": artist,
+		"tracks": tracks,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 func (ah *ArtistHandler) GetArtistWithFilter(c *gin.Context) {

@@ -227,6 +227,41 @@ func (ar *PostgresArtistRepository) GetTrackOfArtist(ctx context.Context, id uui
 		id_list = append(id_list, id)
 	}
 
-	track := []*model.Track{}
-	return track, nil
+	tracks := []*model.Track{}
+
+	for _, id := range id_list {
+		row := ar.dbpool.QueryRow(ctx, "select name, length from tracks where id=$1", id)
+
+		track := model.Track{}
+		track.ID = id
+		err := row.Scan(&track.Name, &track.Length)
+		if err != nil {
+			return nil, err
+		}
+
+		fetchString := "select artist_id from artists_tracks where track_id = $1"
+		rows, err := ar.dbpool.Query(ctx, fetchString, id)
+		if err != nil {
+			return nil, err
+		}
+
+		id_list := []uuid.UUID{}
+		for rows.Next() {
+			uuid_byte := []byte{}
+			err = rows.Scan(&uuid_byte)
+			if err != nil {
+				return nil, err
+			}
+			id, err := uuid.FromBytes(uuid_byte)
+			if err != nil {
+				return nil, err
+			}
+			id_list = append(id_list, id)
+		}
+
+		track.ArtistID = id_list
+
+		tracks = append(tracks, &track)
+	}
+	return tracks, nil
 }
