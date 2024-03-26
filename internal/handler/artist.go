@@ -5,6 +5,8 @@ import (
 	"flotify/internal/helper"
 	"flotify/internal/model"
 	"flotify/internal/repository"
+	"flotify/internal/response"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,15 +25,17 @@ func NewArtistHandler(repo repository.ArtistRepository) ArtistHandler {
 }
 
 // CreateArtist godoc
-//	@Summary		Create an artist
-//	@Description	Create a new artist
-//	@Tags			artist
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{object}	model.Artist
-//	@Failure		400
-//	@Failure		500
-//	@Router			/artist [post]
+//
+//		@Summary		Create an artist
+//		@Description	Create a new artist
+//		@Tags			artists
+//		@Accept			json
+//		@Produce		json
+//	 	@Param 			artist body model.Artist true "Artist Information"
+//		@Success		200	{object}	model.Artist
+//		@Failure		400
+//		@Failure		500
+//		@Router			/artists [post]
 func (ah *ArtistHandler) CreateArtist(c *gin.Context) {
 	type RequestArtist struct {
 		Name        string `json:"name"`
@@ -58,6 +62,17 @@ func (ah *ArtistHandler) CreateArtist(c *gin.Context) {
 	c.JSON(http.StatusOK, artist)
 }
 
+// GetArtistInformation godoc
+//
+//		@Summary		Get information of an artist
+//		@Description	Get information of an artist using ID
+//		@Tags			artists
+//		@Produce		json
+//	 	@Param	 		id path string true "Artist ID" example("3983a1d6-759b-4e5e-b307-7b7e06a05a85")
+//		@Success		200	{object}	model.Artist
+//		@Failure		400 "Bad Request"
+//		@Failure		500 "Internal Server Error"
+//		@Router			/artists/{id} [get]
 func (ah *ArtistHandler) GetInfoArtistByID(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
@@ -76,18 +91,23 @@ func (ah *ArtistHandler) GetInfoArtistByID(c *gin.Context) {
 	c.JSON(http.StatusOK, artist)
 }
 
+//	 GetTopTracksOfArist godoc
+//
+//		@Summary		Get top tracks of an artist
+//		@Description	Get top tracks of an artist using ID
+//		@Tags			artists
+//		@Param 			id path string true "Artist ID" example("3983a1d6-759b-4e5e-b307-7b7e06a05a85")
+//		@Produce		json
+//		@Success		200	{object}	model.Tracks
+//		@Failure		400 "Bad Request"
+//		@Failure		500 "Internal Server Error"
+//		@Router			/artists/{id}/tracks [get]
 func (ah *ArtistHandler) GetArtistTracksByID(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
 	id, err := uuid.FromString(id_string_form)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusBadRequest)
-		return
-	}
-
-	artist, err := ah.repository.GetArtistByID(context.Background(), id)
-	if err != nil {
-		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -98,12 +118,25 @@ func (ah *ArtistHandler) GetArtistTracksByID(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"artist": artist,
 		"tracks": tracks,
 	}
 	c.JSON(http.StatusOK, response)
 }
 
+// GetListOfArtist godoc
+//
+//	@Summary		Get list of artists
+//	@Description	Get list of artists that satisfied conditions in filter
+//	@Tags			artists
+//	@Produce		json
+//	@Param 			name query string false "name of the artist" example("Blue Town")
+//	@Param 			sort query string false "criteria for sorting artist-searching results" example("-name", "name")
+//	@Param 			page query int false "searching page" example(2)
+//	@Param 			limit query int false "searching limit" example(10)
+//	@Success		200	{object}	model.Artists
+//	@Failure		400 "Bad Request"
+//	@Failure		500 "Internal Server Error"
+//	@Router			/artists [get]
 func (ah *ArtistHandler) GetArtistWithFilter(c *gin.Context) {
 	name := c.Query("name")
 
@@ -141,6 +174,17 @@ func (ah *ArtistHandler) GetArtistWithFilter(c *gin.Context) {
 	c.JSON(http.StatusOK, tracks)
 }
 
+// DeleteArtist godoc
+//
+//		@Summary		Delete an artist
+//		@Description	Delete an artist using ID
+//		@Tags			artists
+//		@Produce		json
+//	 	@Param 			id path string true "Artist ID" example("3983a1d6-759b-4e5e-b307-7b7e06a05a85")
+//		@Success		200	{object} response.DeleteArtistResponse
+//		@Failure		400 "Bad Request"
+//		@Failure		500 "Internal Server Error"
+//		@Router			/artists/{id} [delete]
 func (ah *ArtistHandler) DeleteArtist(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
@@ -156,9 +200,22 @@ func (ah *ArtistHandler) DeleteArtist(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "delete successfully"})
+	delete_response := fmt.Sprintf("delete artist with id %v successfully", id)
+	c.JSON(http.StatusOK, response.DeleteArtistResponse{Response: delete_response})
 }
 
+// UpdateArtistInformation godoc
+//
+//	@Summary		Update information of an artist
+//	@Description	Update information of an artist
+//	@Tags			artists
+//	@Accept			json
+//	@Produce		json
+//	@Param 			artist body model.Artist true "artist information"
+//	@Success		200	{object}	model.Artist
+//	@Failure		400 "Bad Request"
+//	@Failure		500 "Internal Server Error"
+//	@Router			/artists [put]
 func (ah *ArtistHandler) UpdateArtist(c *gin.Context) {
 	artist := model.Artist{}
 	if err := c.BindJSON(&artist); err != nil {

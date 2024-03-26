@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofrs/uuid/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
@@ -32,7 +33,7 @@ func (ur *PostgresUserRepository) GetUserByID(ctx context.Context, id uuid.UUID)
 	row := ur.dbpool.QueryRow(ctx, "select name from tracks where id=$1", id)
 
 	user := model.User{ID: id}
-	err := row.Scan(&user.Name)
+	err := row.Scan(&user.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +41,7 @@ func (ur *PostgresUserRepository) GetUserByID(ctx context.Context, id uuid.UUID)
 	return &user, nil
 }
 
-func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.Track) (*model.Track, error) {
+func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
 	tx, err := ur.dbpool.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -50,9 +51,15 @@ func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.Tr
 	context, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	hash_password, err := bcrypt.GenerateFromPassword([]byte(user.Password), 8)
+	if err != nil {
+		return nil, err
+	}
+
 	insertString := "INSERT INTO users(name) VALUES ($1) RETURNING id"
 	args := []any{
-		user.Name,
+		user.Username,
+		hash_password,
 	}
 	row := tx.QueryRow(context, insertString, args...)
 
@@ -76,7 +83,7 @@ func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.Tr
 func (tr *PostgresTrackRepository) UpdateUserInfo(ctx context.Context, user *model.User) error {
 	args := []any{
 		user.ID,
-		user.Name,
+		user.Username,
 	}
 
 	_, err := tr.dbpool.Exec(ctx, "update users set name = $2 where id = $1", args...)
@@ -106,5 +113,26 @@ func (ur *PostgresUserRepository) DeleteUser(ctx context.Context, id uuid.UUID) 
 }
 
 func (ur *PostgresUserRepository) GetFollowArtist(ctx context.Context, id uuid.UUID) ([]model.Artist, error) {
-	return nil, nil
+	fetchString := `
+		SELECT (*) FROM artists
+		WHERE id BELONG TO (SELECT artist_id FROM artists_users WHERE user_id = $1)
+	`
+
+	rows, err := ur.dbpool.Query(ctx, fetchString, id)
+	if err != nil {
+		return nil, err
+	}
+
+	artists := []model.Artist{}
+	for rows.Next() {
+		artist := model.Artist{}
+		err = rows.Scan(&artist.ID, &artist.Name, &artist.Description)
+		if err != nil {
+			return nil, err
+		}
+		artists = append(artists, artist)
+	}
+
+	return artists, nil
+
 }

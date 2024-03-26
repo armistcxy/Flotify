@@ -14,7 +14,6 @@ func GetDatabasePool() *pgxpool.Pool {
 	if err != nil {
 		panic(err)
 	}
-
 	err = dbpool.Ping(context.Background())
 	if err != nil {
 		panic(err)

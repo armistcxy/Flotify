@@ -22,7 +22,8 @@ func NewUserHandler(repo repository.UserRepository) UserHandler {
 
 func (ur *UserHandler) CreateUser(c *gin.Context) {
 	type RequestUser struct {
-		Name string
+		Name     string
+		Password string
 	}
 
 	request_user := RequestUser{}
@@ -33,8 +34,10 @@ func (ur *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	user := &model.User{
-		Name: request_user.Name,
+		Username: request_user.Name,
+		Password: request_user.Password,
 	}
+
 	user, err = ur.repository.CreateUser(context.Background(), user)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)

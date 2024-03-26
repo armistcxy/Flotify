@@ -1,92 +1,336 @@
-definitions:
-  model.Artist:
-    properties:
-      description:
-        type: string
-      id:
-        example: 3983a1d6-759b-4e5e-b307-7b7e06a05a85
-        type: string
-      name:
-        type: string
-    type: object
-  model.Track:
-    properties:
-      artistID:
-        items:
+  definitions:
+    model.Artist:
+      properties:
+        description:
+          example: Taylor Swift (born December 13, 1989, West Reading, Pennsylvania,
+            U.S.) is a multitalented singer-songwriter and global superstar who has
+            captivated audiences with her heartfelt lyrics and catchy melodies, solidifying
+            herself as one of the most influential artists in contemporary music.
           type: string
-        type: array
-      id:
-        type: string
-      length:
-        type: integer
-      name:
-        type: string
-    type: object
-host: localhost:4040
-info:
-  contact: {}
-  description: Spotify API clone
-  title: Swagger Flotify API
-  version: "1.0"
-paths:
-  /artist:
-    post:
-      consumes:
-      - application/json
-      description: Create a new artist
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
+        id:
+          example: 3983a1d6-759b-4e5e-b307-7b7e06a05a85
+          type: string
+        name:
+          example: Taylor Swift
+          type: string
+      type: object
+    model.Track:
+      properties:
+        artistID:
+          example:
+          - 3983a1d6-759b-4e5e-b307-7b7e06a05a85
+          items:
+            type: string
+          type: array
+        id:
+          example: 3983a1d6-759b-4e5e-b307-7b7e06a05a85
+          type: string
+        length:
+          example: 88
+          type: integer
+        name:
+          example: Blue Town
+          type: string
+      type: object
+    model.Tracks:
+      properties:
+        tracks:
+          additionalProperties:
+            type: string
+          example:
+            key: value
+          type: object
+      type: object
+    response.DeleteArtistResponse:
+      properties:
+        response:
+          type: string
+      type: object
+    response.DeleteTrackResponse:
+      properties:
+        response:
+          type: string
+      type: object
+  host: localhost:4040
+  info:
+    contact: {}
+    description: Spotify API clone
+    title: Swagger Flotify API
+    version: "1.0"
+  paths:
+    /artists:
+      get:
+        description: Get list of artists that satisfied conditions in filter
+        parameters:
+        - description: name of the artist
+          example: '"Blue Town"'
+          in: query
+          name: name
+          type: string
+        - description: criteria for sorting artist-searching results
+          example: '"-name", "name"'
+          in: query
+          name: sort
+          type: string
+        - description: searching page
+          example: 2
+          in: query
+          name: page
+          type: integer
+        - description: searching limit
+          example: 10
+          in: query
+          name: limit
+          type: integer
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              items:
+                $ref: '#/definitions/model.Artist'
+              type: array
+          "400":
+            description: Bad Request
+          "500":
+            description: Internal Server Error
+        summary: Get list of artists
+        tags:
+        - artists
+      post:
+        consumes:
+        - application/json
+        description: Create a new artist
+        parameters:
+        - description: Artist Information
+          in: body
+          name: artist
+          required: true
           schema:
             $ref: '#/definitions/model.Artist'
-        "400":
-          description: Bad Request
-        "500":
-          description: Internal Server Error
-      summary: Create an artist
-      tags:
-      - artist
-  /track:
-    post:
-      consumes:
-      - application/json
-      description: Create a new track
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Artist'
+          "400":
+            description: Bad Request
+          "500":
+            description: Internal Server Error
+        summary: Create an artist
+        tags:
+        - artists
+      put:
+        consumes:
+        - application/json
+        description: Update information of an artist
+        parameters:
+        - description: artist information
+          in: body
+          name: artist
+          required: true
           schema:
-            $ref: '#/definitions/model.Track'
-        "400":
-          description: Bad request
-      summary: Create a track
-      tags:
-      - track
-  /track/{id}:
-    get:
-      description: Get track's information by its ID
-      parameters:
-      - description: Track ID
-        example: '"3983a1d6-759b-4e5e-b307-7b7e06a05a85"'
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/model.Track'
-        "400":
-          description: Bad request
-        "500":
-          description: Internal server error
-      summary: Get track's information
-      tags:
-      - track
-swagger: "2.0"
+            $ref: '#/definitions/model.Artist'
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Artist'
+          "400":
+            description: Bad Request
+          "500":
+            description: Internal Server Error
+        summary: Update information of an artist
+        tags:
+        - artists
+    /artists/{id}:
+      delete:
+        description: Delete an artist using ID
+        parameters:
+        - description: Artist ID
+          example: '"3983a1d6-759b-4e5e-b307-7b7e06a05a85"'
+          in: path
+          name: id
+          required: true
+          type: string
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/response.DeleteArtistResponse'
+          "400":
+            description: Bad Request
+          "500":
+            description: Internal Server Error
+        summary: Delete an artist
+        tags:
+        - artists
+      get:
+        description: Get information of an artist using ID
+        parameters:
+        - description: Artist ID
+          example: '"3983a1d6-759b-4e5e-b307-7b7e06a05a85"'
+          in: path
+          name: id
+          required: true
+          type: string
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Artist'
+          "400":
+            description: Bad Request
+          "500":
+            description: Internal Server Error
+        summary: Get information of an artist
+        tags:
+        - artists
+    /artists/{id}/tracks:
+      get:
+        description: Get top tracks of an artist using ID
+        parameters:
+        - description: Artist ID
+          example: '"3983a1d6-759b-4e5e-b307-7b7e06a05a85"'
+          in: path
+          name: id
+          required: true
+          type: string
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Tracks'
+          "400":
+            description: Bad Request
+          "500":
+            description: Internal Server Error
+        summary: Get top tracks of an artist
+        tags:
+        - artists
+    /tracks:
+      get:
+        description: Get information of many tracks satisfied conditions in filter
+        parameters:
+        - description: name of the song
+          example: '"Blue Town"'
+          in: query
+          name: name
+          type: string
+        - description: criteria for sorting track-searching results
+          example: '"-namme", "name"'
+          in: query
+          name: sort
+          type: string
+        - description: searching page
+          example: 2
+          in: query
+          name: page
+          type: integer
+        - description: searching limit
+          example: 10
+          in: query
+          name: limit
+          type: integer
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Tracks'
+          "400":
+            description: Bad request
+          "500":
+            description: Internal Server Error
+        summary: Get information of many tracks (advanced)
+        tags:
+        - tracks
+      post:
+        consumes:
+        - application/json
+        description: Create a new track
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Track'
+          "400":
+            description: Bad request
+        summary: Create a track
+        tags:
+        - tracks
+      put:
+        consumes:
+        - application/json
+        description: Update information of a track
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Track'
+          "400":
+            description: Bad request
+        summary: Update information of a track
+        tags:
+        - tracks
+    /tracks/{id}:
+      delete:
+        description: Delete a track using ID
+        parameters:
+        - description: Track ID
+          example: '"3983a1d6-759b-4e5e-b307-7b7e06a05a85"'
+          in: path
+          name: id
+          type: string
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/response.DeleteTrackResponse'
+          "400":
+            description: Bad request
+        summary: Delete a track
+        tags:
+        - tracks
+      get:
+        description: Get information of a track by its ID
+        parameters:
+        - description: Track ID
+          example: '"3983a1d6-759b-4e5e-b307-7b7e06a05a85"'
+          in: path
+          name: id
+          required: true
+          type: string
+        produces:
+        - application/json
+        responses:
+          "200":
+            description: OK
+            schema:
+              $ref: '#/definitions/model.Track'
+          "400":
+            description: Bad request
+          "500":
+            description: Internal server error
+        summary: Get information of a track
+        tags:
+        - tracks
+  swagger: "2.0"

@@ -5,6 +5,8 @@ import (
 	"flotify/internal/helper"
 	"flotify/internal/model"
 	"flotify/internal/repository"
+	"flotify/internal/response"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -26,12 +28,12 @@ func NewTrackHandler(repo repository.TrackRepository) TrackHandler {
 //
 //	@Summary		Create a track
 //	@Description	Create a new track
-//	@Tags			track
+//	@Tags			tracks
 //	@Accept			json
 //	@Produce		json
 //	@Success		200	{object}	model.Track
 //	@Failure		400	"Bad request"
-//	@Router			/track [post]
+//	@Router			/tracks [post]
 func (th *TrackHandler) CreateTrack(c *gin.Context) {
 	type RequestTrack struct {
 		Name      string      `json:"name"`
@@ -62,15 +64,15 @@ func (th *TrackHandler) CreateTrack(c *gin.Context) {
 
 // GetTrack godoc
 //
-//	@Summary		Get track's information
-//	@Description	Get track's information by its ID
-//	@Tags			track
+//	@Summary		Get information of a track
+//	@Description	Get information of a track by its ID
+//	@Tags			tracks
 //	@Param			id path string true "Track ID" example("3983a1d6-759b-4e5e-b307-7b7e06a05a85")
 //	@Produce		json
 //	@Success		200	{object}	model.Track
 //	@Failure		400	"Bad request"
 //	@Failure		500	"Internal server error"
-//	@Router			/track/{id} [get]
+//	@Router			/tracks/{id} [get]
 func (th *TrackHandler) GetTrackByID(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
@@ -96,6 +98,19 @@ func (th *TrackHandler) GetTrackByID(c *gin.Context) {
 	c.JSON(http.StatusOK, track)
 }
 
+// GetTrackWithFilter doc
+// @Summary Get information of many tracks (advanced)
+// @Description Get information of many tracks satisfied conditions in filter
+// @Tags tracks
+// @Param name query string false "name of the song" example("Blue Town")
+// @Param sort query string false "criteria for sorting track-searching results" example("-namme", "name")
+// @Param page query int false "searching page" example(2)
+// @Param limit query int false "searching limit" example(10)
+// @Produce json
+// @Success 200 {object} model.Tracks
+// @Failure 400 "Bad request"
+// @Failure 500 "Internal Server Error"
+// @Router /tracks [get]
 func (th *TrackHandler) GetTrackWithFilter(c *gin.Context) {
 
 	name := c.Query("name")
@@ -134,6 +149,16 @@ func (th *TrackHandler) GetTrackWithFilter(c *gin.Context) {
 	c.JSON(http.StatusOK, tracks)
 }
 
+// DeleteTrack godoc
+//
+//		@Summary		Delete a track
+//		@Description	Delete a track using ID
+//		@Tags			tracks
+//		@Produce		json
+//	 	@Param  		id path string false "Track ID" example("3983a1d6-759b-4e5e-b307-7b7e06a05a85")
+//		@Success		200	{object} response.DeleteTrackResponse
+//		@Failure		400	"Bad request"
+//		@Router			/tracks/{id} [delete]
 func (th *TrackHandler) DeleteTrack(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
@@ -149,9 +174,20 @@ func (th *TrackHandler) DeleteTrack(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "delete successfully"})
+	delete_response := fmt.Sprintf("delete track with id %v successfully", id)
+	c.JSON(http.StatusOK, response.DeleteTrackResponse{Response: delete_response})
 }
 
+// UpdateTrack godoc
+//
+//	@Summary		Update information of a track
+//	@Description	Update information of a track
+//	@Tags			tracks
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	model.Track
+//	@Failure		400	"Bad request"
+//	@Router			/tracks [put]
 func (th *TrackHandler) UpdateTrack(c *gin.Context) {
 	track := model.Track{}
 	if err := c.BindJSON(&track); err != nil {
