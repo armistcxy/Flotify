@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"errors"
+	"flotify/internal/custom_error"
 	"flotify/internal/model"
 	"fmt"
 	"time"
@@ -19,24 +19,24 @@ type UserRepository interface {
 	UpdatePassword(ctx context.Context, id uuid.UUID, new_password, old_password string) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetFollowArtist(ctx context.Context, id uuid.UUID) ([]model.Artist, error)
-	UserLogin(ctx context.Context, email string, password string) error
+	UserLogin(ctx context.Context, email string, password string) (*uuid.UUID, error)
 }
 
 type PostgresUserRepository struct {
 	dbpool *pgxpool.Pool
 }
 
-func NewPostgresUserRepository(dbpool *pgxpool.Pool) *PostgresTrackRepository {
-	return &PostgresTrackRepository{
+func NewPostgresUserRepository(dbpool *pgxpool.Pool) *PostgresUserRepository {
+	return &PostgresUserRepository{
 		dbpool: dbpool,
 	}
 }
 
 func (ur *PostgresUserRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
-	row := ur.dbpool.QueryRow(ctx, "select name from tracks where id=$1", id)
+	row := ur.dbpool.QueryRow(ctx, "select username, email from users where id=$1", id)
 
 	user := model.User{ID: id}
-	err := row.Scan(&user.Username)
+	err := row.Scan(&user.Username, &user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +71,10 @@ func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.Us
 		return nil, err
 	}
 
-	insertString := "INSERT INTO users(name) VALUES ($1) RETURNING id"
+	insertString := "INSERT INTO users(username, email, password) VALUES ($1, $2, $3) RETURNING id"
 	args := []any{
 		user.Username,
+		user.Email,
 		hash_password,
 	}
 	row := tx.QueryRow(context, insertString, args...)
@@ -96,7 +97,7 @@ func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.Us
 }
 
 // this function need authentication
-func (tr *PostgresTrackRepository) UpdateUserInfo(ctx context.Context, user *model.User) error {
+func (tr *PostgresUserRepository) UpdateUserInfo(ctx context.Context, user *model.User) error {
 	args := []any{
 		user.ID,
 		user.Username,
@@ -173,7 +174,7 @@ func (ur *PostgresUserRepository) UpdatePassword(ctx context.Context, id uuid.UU
 	}
 	// next confirm old password
 	if err := bcrypt.CompareHashAndPassword([]byte(hash_password), []byte(old_password)); err != nil {
-		return errors.New("password not match")
+		return custom_error.OldPasswordMismatchError{}
 	}
 	// then change passsword
 	change_password_string := "update table users set password = $1 where id = $2"
@@ -183,23 +184,27 @@ func (ur *PostgresUserRepository) UpdatePassword(ctx context.Context, id uuid.UU
 	return nil // nil mean change password success
 }
 
-func (ur *PostgresUserRepository) UserLogin(ctx context.Context, email string, password string) error {
+func (ur *PostgresUserRepository) UserLogin(ctx context.Context, email string, password string) (*uuid.UUID, error) {
 	// first determine whether the email in db
 	check_exist_email_string := "select id from users where email = $1"
 	var uuid_byte []byte
 	if err := ur.dbpool.QueryRow(ctx, check_exist_email_string, email).Scan(&uuid_byte); err != nil {
-		return errors.New("email or password not match")
+		return nil, custom_error.MismatchError{}
 	}
 	// next get the hash password stored in db
 	get_hash_password_string := "select password from users where email = $1"
 	var hash_password string
 	if err := ur.dbpool.QueryRow(ctx, get_hash_password_string, email).Scan(&hash_password); err != nil {
-		return err
+		return nil, err
 	}
 	// next check the password
 	if err := bcrypt.CompareHashAndPassword([]byte(hash_password), []byte(password)); err != nil {
-		return errors.New("email or password not match") // don't let the hacker know what was wrong
+		return nil, custom_error.MismatchError{} // don't let the hacker know what was wrong
 	}
 
-	return nil
+	uuid, err := uuid.FromBytes(uuid_byte)
+	if err != nil {
+		return nil, err
+	}
+	return &uuid, nil
 }

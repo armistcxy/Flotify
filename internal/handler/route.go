@@ -2,6 +2,7 @@ package handler
 
 import (
 	"flotify/internal/repository"
+	"flotify/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,9 +40,13 @@ func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 
 	user_repo := repository.NewPostgresUserRepository(dbpool)
 	user_handler := NewUserHandler(user_repo)
-	user_subrouter := router.Group("/user")
+	user_subrouter := router.Group("/users")
 	{
-		user_subrouter.POST("/", user_handler.CreateUser)
+		user_subrouter.POST("/register", user_handler.CreateUser)
+		user_subrouter.POST("/login", user_handler.LoginUser)
+		user_subrouter.Use(middleware.AuthRequest())
+		user_subrouter.GET("/:id", user_handler.ViewInformation)
 	}
+
 	return router
 }

@@ -13,6 +13,10 @@ type DatabaseConfig struct {
 	DSN string
 }
 
+type AuthConfig struct {
+	SecretKey string
+}
+
 func LoadServerConfig() ServerConfig {
 	server_config := ServerConfig{}
 	viper.SetConfigFile("internal/config/config.yml")
@@ -49,4 +53,16 @@ func LoadDatabaseConfig() DatabaseConfig {
 	}
 
 	return database_config
+}
+
+func LoadAuthConfig() AuthConfig {
+	auth_config := AuthConfig{}
+	viper.SetConfigFile("internal/config/config.yml")
+	if err := viper.ReadInConfig(); err != nil {
+		panic(err)
+	}
+
+	auth_config.SecretKey = viper.GetString("auth.secretkey")
+
+	return auth_config
 }
