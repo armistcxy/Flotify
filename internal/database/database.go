@@ -22,3 +22,20 @@ func GetDatabasePool() *pgxpool.Pool {
 	log.Println("Connect database successfully")
 	return dbpool
 }
+
+func GetAuthDatabasePool() *pgxpool.Pool {
+	auth_database_config := config.LoadAuthDatabaseConfig()
+	authdbpool, err := pgxpool.New(context.Background(), auth_database_config.DSN)
+
+	if err != nil {
+		panic(err)
+	}
+	err = authdbpool.Ping(context.Background())
+	if err != nil {
+		panic(err)
+	}
+	return authdbpool
+}
+
+// It seem like bad to have two seperate GetDatabasePool at first glance
+// But each config is different so you can ignore it ...

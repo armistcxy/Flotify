@@ -17,6 +17,10 @@ type AuthConfig struct {
 	SecretKey string
 }
 
+type AuthDatabaseConfig struct {
+	DSN string
+}
+
 func LoadServerConfig() ServerConfig {
 	server_config := ServerConfig{}
 	viper.SetConfigFile("internal/config/config.yml")
@@ -65,4 +69,20 @@ func LoadAuthConfig() AuthConfig {
 	auth_config.SecretKey = viper.GetString("auth.secretkey")
 
 	return auth_config
+}
+
+func LoadAuthDatabaseConfig() DatabaseConfig {
+	database_config := DatabaseConfig{}
+	viper.SetConfigFile("internal/config/config.yml")
+	if err := viper.ReadInConfig(); err != nil {
+		panic(err)
+	}
+
+	if dsn := viper.GetString("auth.database.dsn"); dsn != "" {
+		database_config.DSN = dsn
+	} else {
+		database_config.DSN = "postgres://dev:123456789@localhost/authflotify"
+	}
+
+	return database_config
 }

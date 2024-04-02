@@ -20,6 +20,7 @@ type UserRepository interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetFollowArtist(ctx context.Context, id uuid.UUID) ([]model.Artist, error)
 	UserLogin(ctx context.Context, email string, password string) (*uuid.UUID, error)
+	FollowArtist(ctx context.Context, user_id uuid.UUID, artist_id uuid.UUID) error
 }
 
 type PostgresUserRepository struct {
@@ -98,11 +99,6 @@ func (ur *PostgresUserRepository) CreateUser(ctx context.Context, user *model.Us
 
 // this function need authentication
 func (tr *PostgresUserRepository) UpdateUserInfo(ctx context.Context, user *model.User) error {
-	args := []any{
-		user.ID,
-		user.Username,
-	}
-
 	check_exist_string := "select count(*) from users where username = $1"
 	var count int
 
@@ -110,6 +106,11 @@ func (tr *PostgresUserRepository) UpdateUserInfo(ctx context.Context, user *mode
 		return err
 	} else if count != 0 {
 		return custom_error.DuplicateUsernameError{}
+	}
+
+	args := []any{
+		user.ID,
+		user.Username,
 	}
 	_, err := tr.dbpool.Exec(ctx, "update users set username = $2 where id = $1", args...)
 	if err != nil {
@@ -207,4 +208,39 @@ func (ur *PostgresUserRepository) UserLogin(ctx context.Context, email string, p
 		return nil, err
 	}
 	return &uuid, nil
+}
+
+func (ur *PostgresUserRepository) FollowArtist(ctx context.Context, user_id uuid.UUID, artist_id uuid.UUID) error {
+	// use transaction here
+	tx, err := ur.dbpool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var count_result int
+	err = tx.QueryRow(ctx, "SELECT 1 FROM artists where artist_id=$1").Scan(&count_result)
+	if err != nil {
+		return err
+	}
+
+	if count_result == 0 {
+		return custom_error.NonExistArtistError{}
+	}
+
+	insert_string := "INSERT artists_users(artist_id,user_id) VALUES($1, $2)"
+	args := []any{
+		artist_id,
+		user_id,
+	}
+	_, err = tx.Exec(ctx, insert_string, args...)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }

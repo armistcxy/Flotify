@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"flotify/internal/auth"
 	"flotify/internal/helper"
 	"net/http"
 
@@ -9,9 +10,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-var auth_manager = helper.NewAuthManager()
-
-func AuthRequest() gin.HandlerFunc {
+func AuthRequest(auth_manager auth.AuthManager) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		token_string := c.Request.Header.Get("Authorization")
@@ -32,6 +31,7 @@ func AuthRequest() gin.HandlerFunc {
 			helper.ErrorResponse(c, err, http.StatusUnauthorized)
 			return
 		}
+
 		c.Next()
 	}
 }

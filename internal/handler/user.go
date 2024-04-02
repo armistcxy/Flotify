@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"flotify/internal/auth"
 	"flotify/internal/custom_error"
 	"flotify/internal/helper"
 	"flotify/internal/model"
@@ -15,13 +16,13 @@ import (
 
 type UserHandler struct {
 	repository   repository.UserRepository
-	auth_manager helper.AuthManager
+	auth_manager auth.AuthManager
 }
 
-func NewUserHandler(repo repository.UserRepository) UserHandler {
+func NewUserHandler(repo repository.UserRepository, auth_manager auth.AuthManager) UserHandler {
 	return UserHandler{
 		repository:   repo,
-		auth_manager: helper.NewAuthManager(),
+		auth_manager: auth_manager,
 	}
 }
 
@@ -89,7 +90,7 @@ func (uh *UserHandler) LoginUser(c *gin.Context) {
 	}
 
 	// create token
-	credential := helper.AuthCredential{
+	credential := auth.AuthCredential{
 		ID: *id,
 	}
 	access_token_string, err := uh.auth_manager.GenerateJWT(&credential, time.Minute*15)
@@ -100,6 +101,10 @@ func (uh *UserHandler) LoginUser(c *gin.Context) {
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
+	}
+	err = uh.auth_manager.StoreRefreshToken(*id, refresh_token_string)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 	}
 	// log.Println(token_string)
 	// c.SetCookie("cookie", token_string, int(time.Now().UTC().Add(time.Minute*15).Unix()), "/", "localhost", false, false)

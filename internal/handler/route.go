@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"flotify/internal/auth"
+	"flotify/internal/config"
 	"flotify/internal/repository"
 	"flotify/middleware"
 
@@ -10,7 +12,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
+func InitRouter(dbpool *pgxpool.Pool, authdbpool *pgxpool.Pool) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
@@ -39,13 +41,16 @@ func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 		artist_subrouter.GET("/", artist_handler.GetArtistWithFilter)
 	}
 
+	repo := auth.NewAuthRepository(authdbpool, config.LoadAuthConfig().SecretKey)
+	auth_manager := auth.NewAuthManager(config.LoadAuthConfig().SecretKey, *repo)
+
 	user_repo := repository.NewPostgresUserRepository(dbpool)
-	user_handler := NewUserHandler(user_repo)
+	user_handler := NewUserHandler(user_repo, auth_manager)
 	user_subrouter := router.Group("/users")
 	{
 		user_subrouter.POST("/register", user_handler.CreateUser)
 		user_subrouter.POST("/login", user_handler.LoginUser)
-		user_subrouter.Use(middleware.AuthRequest())
+		user_subrouter.Use(middleware.AuthRequest(auth_manager))
 		user_subrouter.GET("/:id", user_handler.ViewInformation)
 		user_subrouter.PUT("/:id", user_handler.ModifyInformation)
 	}

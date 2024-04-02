@@ -14,12 +14,15 @@ import (
 //	@version		1.0
 //	@description	Spotify API clone
 
-//	@host	localhost:4040
+// @host	localhost:4040
 func main() {
 	dbpool := database.GetDatabasePool()
 	defer dbpool.Close()
 
-	router := handler.InitRouter(dbpool)
+	authdbpool := database.GetAuthDatabasePool()
+	defer dbpool.Close()
+
+	router := handler.InitRouter(dbpool, authdbpool)
 
 	server_config := config.LoadServerConfig()
 	addr := fmt.Sprintf("%s:%s", server_config.Host, server_config.Port)

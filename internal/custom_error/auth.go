@@ -18,6 +18,12 @@ func (e OldPasswordMismatchError) Error() string {
 	return "old password does not match"
 }
 
+type InvalidTokenError struct{}
+
+func (e InvalidTokenError) Error() string {
+	return "invalid token"
+}
+
 type AccessTokenExpiredError struct{}
 
 func (e AccessTokenExpiredError) Error() string {
