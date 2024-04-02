@@ -17,3 +17,15 @@ type OldPasswordMismatchError struct{}
 func (e OldPasswordMismatchError) Error() string {
 	return "old password does not match"
 }
+
+type AccessTokenExpiredError struct{}
+
+func (e AccessTokenExpiredError) Error() string {
+	return "access token is expired"
+}
+
+type RefreshTokenExpired struct{}
+
+func (e RefreshTokenExpired) Error() string {
+	return "refresh token is expired"
+}

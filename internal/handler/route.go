@@ -12,7 +12,8 @@ import (
 
 func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 	router := gin.New()
-
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
 	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	track_repo := repository.NewPostgresTrackRepository(dbpool)
@@ -46,6 +47,7 @@ func InitRouter(dbpool *pgxpool.Pool) *gin.Engine {
 		user_subrouter.POST("/login", user_handler.LoginUser)
 		user_subrouter.Use(middleware.AuthRequest())
 		user_subrouter.GET("/:id", user_handler.ViewInformation)
+		user_subrouter.PUT("/:id", user_handler.ModifyInformation)
 	}
 
 	return router

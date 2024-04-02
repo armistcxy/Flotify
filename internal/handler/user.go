@@ -7,6 +7,7 @@ import (
 	"flotify/internal/model"
 	"flotify/internal/repository"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
@@ -91,14 +92,18 @@ func (uh *UserHandler) LoginUser(c *gin.Context) {
 	credential := helper.AuthCredential{
 		ID: *id,
 	}
-	token_string, err := uh.auth_manager.GenerateJWT(&credential)
+	access_token_string, err := uh.auth_manager.GenerateJWT(&credential, time.Minute*15)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+	}
+	refresh_token_string, err := uh.auth_manager.GenerateJWT(&credential, time.Hour*24*7)
 	if err != nil {
 		helper.ErrorResponse(c, err, http.StatusInternalServerError)
 		return
 	}
 	// log.Println(token_string)
 	// c.SetCookie("cookie", token_string, int(time.Now().UTC().Add(time.Minute*15).Unix()), "/", "localhost", false, false)
-	c.JSON(http.StatusOK, gin.H{"bearer token": token_string})
+	c.JSON(http.StatusOK, gin.H{"access token": access_token_string, "refresh token": refresh_token_string})
 }
 
 func (uh *UserHandler) ViewInformation(c *gin.Context) {
@@ -117,4 +122,40 @@ func (uh *UserHandler) ViewInformation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func (uh *UserHandler) ModifyInformation(c *gin.Context) {
+	id_string_form := c.Params.ByName("id")
+	id, err := uuid.FromString(id_string_form)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	type RequestUser struct {
+		Username string `json:"username"`
+	}
+
+	request_user := RequestUser{}
+	err = c.BindJSON(&request_user)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	user := model.User{
+		ID:       id,
+		Username: request_user.Username,
+	}
+	err = uh.repository.UpdateUserInfo(context.Background(), &user)
+	if err != nil {
+		switch err := err.(type) {
+		case custom_error.DuplicateUsernameError:
+			helper.ErrorResponse(c, err, http.StatusBadRequest)
+			return
+		default:
+			helper.ErrorResponse(c, err, http.StatusInternalServerError)
+			return
+		}
+	}
 }

@@ -103,15 +103,15 @@ func (tr *PostgresUserRepository) UpdateUserInfo(ctx context.Context, user *mode
 		user.Username,
 	}
 
-	check_exist_string := "select count(*) from users where name = $1"
+	check_exist_string := "select count(*) from users where username = $1"
 	var count int
 
 	if err := tr.dbpool.QueryRow(ctx, check_exist_string, user.Username).Scan(&count); err != nil {
 		return err
 	} else if count != 0 {
-		return fmt.Errorf("username %s has already been used", user.Username)
+		return custom_error.DuplicateUsernameError{}
 	}
-	_, err := tr.dbpool.Exec(ctx, "update users set name = $2 where id = $1", args...)
+	_, err := tr.dbpool.Exec(ctx, "update users set username = $2 where id = $1", args...)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (tr *PostgresUserRepository) UpdateUserInfo(ctx context.Context, user *mode
 	return nil
 }
 
-// this function need authentication, and verify using email
+// this function need authentication, and verify using id
 func (ur *PostgresUserRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	deleteString := `
 		with res as (DELETE FROM users where id = $1 returning 1)

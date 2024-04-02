@@ -25,9 +25,9 @@ func NewAuthManager() AuthManager {
 		auth_config.SecretKey,
 	}
 }
-func (am *AuthManager) GenerateJWT(ac *AuthCredential) (string, error) {
+func (am *AuthManager) GenerateJWT(ac *AuthCredential, exp_time time.Duration) (string, error) {
 
-	expiration_time := time.Now().UTC().Add(time.Minute * 15)
+	expiration_time := time.Now().UTC().Add(exp_time)
 
 	jwtclaim := jwt.MapClaims{
 		"id":  ac.ID,
@@ -56,6 +56,8 @@ func (am *AuthManager) VerifyJWT(token_string string, id uuid.UUID) error {
 			return []byte(am.SecretKey), nil
 		},
 	)
+	// there something that I unexpected here: when parsing, the exp is auto validated
+	// but I want to handle it manual
 	if err != nil {
 		log.Println("Not parse")
 		return err
