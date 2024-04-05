@@ -48,7 +48,7 @@ func InitRouter(dbpool *pgxpool.Pool, authdbpool *pgxpool.Pool) *gin.Engine {
 	user_handler := NewUserHandler(user_repo, auth_manager)
 	user_subrouter := router.Group("/users")
 	{
-		user_subrouter.POST("/register", user_handler.CreateUser)
+		user_subrouter.POST("/register", user_handler.RegisterUser)
 		user_subrouter.POST("/login", user_handler.LoginUser)
 		user_subrouter.Use(middleware.AuthRequest(auth_manager))
 		user_subrouter.GET("/:id", user_handler.ViewInformation)

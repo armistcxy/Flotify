@@ -27,36 +27,6 @@ type PostgresTrackRepository struct {
 	dbpool *pgxpool.Pool
 }
 
-// UpdatePassword implements UserRepository.
-func (tr *PostgresTrackRepository) UpdatePassword(ctx context.Context, id uuid.UUID, new_password string, old_password string) error {
-	panic("unimplemented")
-}
-
-// UserLogin implements UserRepository.
-func (tr *PostgresTrackRepository) UserLogin(ctx context.Context, email string, password string) error {
-	panic("unimplemented")
-}
-
-// CreateUser implements UserRepository.
-func (tr *PostgresTrackRepository) CreateUser(ctx context.Context, user *model.User) (*model.User, error) {
-	panic("unimplemented")
-}
-
-// DeleteUser implements UserRepository.
-func (tr *PostgresTrackRepository) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	panic("unimplemented")
-}
-
-// GetFollowArtist implements UserRepository.
-func (tr *PostgresTrackRepository) GetFollowArtist(ctx context.Context, id uuid.UUID) ([]model.Artist, error) {
-	panic("unimplemented")
-}
-
-// GetUserByID implements UserRepository.
-func (tr *PostgresTrackRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
-	panic("unimplemented")
-}
-
 func NewPostgresTrackRepository(dbpool *pgxpool.Pool) *PostgresTrackRepository {
 	return &PostgresTrackRepository{
 		dbpool: dbpool,

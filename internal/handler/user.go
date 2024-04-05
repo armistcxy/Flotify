@@ -26,7 +26,17 @@ func NewUserHandler(repo repository.UserRepository, auth_manager auth.AuthManage
 	}
 }
 
-func (uh *UserHandler) CreateUser(c *gin.Context) {
+// CreateUser godoc
+// @Summary RegisterUser
+// @Accept json
+// @Produce json
+// @Description Register user
+// @Success 200 {response} model.user
+// @Failure 400 "Bad Request"
+// @Failure 500 "Internal Server Error"
+// @Tag users
+// @Router /users/register [POST]
+func (uh *UserHandler) RegisterUser(c *gin.Context) {
 	type RequestUser struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`
@@ -60,6 +70,15 @@ func (uh *UserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// LoginUser godoc
+// @Summary Login user
+// @Description Login user with credentials (email and password)
+// @Accept json
+// @Produce json
+// @Success 200
+// @Failure 400 "Bad request"
+// @Failure 500 "Internal server error"
+// @Router /users/login [POST]
 func (uh *UserHandler) LoginUser(c *gin.Context) {
 	type RequestUser struct {
 		Email    string
@@ -111,6 +130,15 @@ func (uh *UserHandler) LoginUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"access token": access_token_string, "refresh token": refresh_token_string})
 }
 
+// ViewUserInformation godoc
+// @Summary View user information
+// @Description View user information with user ID
+// @Produce json
+// @Param id path string true "user ID"
+// @Success 200 {object} model.user
+// @Failure 400 "Bad request"
+// @Failure 500 "Internal server error"
+// @Router /users/{id} [GET]
 func (uh *UserHandler) ViewInformation(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 
@@ -129,6 +157,15 @@ func (uh *UserHandler) ViewInformation(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
+// ModifyUserInformation godoc
+// @Summary Modify user information
+// @Description Modify user information with user ID
+// @Produce json
+// @Param id path string true "user ID"
+// @Success 200 {object} model.user
+// @Failure 400 "Bad request"
+// @Failure 500 "Internal server error"
+// @Router /users/{id} [PUT]
 func (uh *UserHandler) ModifyInformation(c *gin.Context) {
 	id_string_form := c.Params.ByName("id")
 	id, err := uuid.FromString(id_string_form)
@@ -163,4 +200,82 @@ func (uh *UserHandler) ModifyInformation(c *gin.Context) {
 			return
 		}
 	}
+	c.JSON(http.StatusAccepted, user)
 }
+
+// DeleteUser godoc
+// @Summary Delete user
+// @Description Delete user with user ID
+// @Param id string path true
+// @Success 200
+// @Failure 400 "Bad request"
+// @Failure 401 "Authorization required"
+// @Failure 500 "Internal server error"
+// @Router /users/{id} [DELETE]
+func (ur *UserHandler) DeleteUser(c *gin.Context) {
+	// require authentication and authorization
+
+	id_string_form := c.Params.ByName("id")
+	id, err := uuid.FromString(id_string_form)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	err = ur.repository.DeleteUser(context.Background(), id)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "delete successfully"})
+}
+
+func (ur *UserHandler) GetFollowArtist(c *gin.Context) {
+	id_string_form := c.Params.ByName("id")
+	id, err := uuid.FromString(id_string_form)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	artists, err := ur.repository.GetFollowArtist(context.Background(), id)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, artists)
+}
+
+func (ur *UserHandler) FollowArtist(c *gin.Context) {
+	user_id_string_form := c.Params.ByName("id")
+	user_id, err := uuid.FromString(user_id_string_form)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+
+	type RequestArtist struct {
+		ID string `json:"id"`
+	}
+	request_artist := RequestArtist{}
+	err = c.BindJSON(&request_artist)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusBadRequest)
+		return
+	}
+	artist_id, err := uuid.FromString(request_artist.ID)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+		return
+	}
+	err = ur.repository.FollowArtist(context.Background(), user_id, artist_id)
+	if err != nil {
+		helper.ErrorResponse(c, err, http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "follow artist successfully"})
+}
+
+
